@@ -1,2 +1,5 @@
 /target
 .idea
+# we generate wasm on every change
+/wasm/roguelike.js
+/wasm/roguelike_bg.wasm
