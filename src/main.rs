@@ -13,6 +13,8 @@ mod visibility_system;
 use visibility_system::*;
 mod monster_ai_system;
 use monster_ai_system::*;
+mod map_indexing_system;
+use map_indexing_system::*;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState { Paused, Running }
@@ -27,6 +29,8 @@ impl State {
     fn run_systems(&mut self) {
         let mut vis = VisibilitySystem{};
         vis.run_now(&self.ecs);
+        let mut map_indexing = MapIndexingSystem {};
+        map_indexing.run_now(&self.ecs);
         let mut monsters_ai = MonsterAI {};
         monsters_ai.run_now(&self.ecs);
         self.ecs.maintain();
@@ -76,6 +80,7 @@ fn main() -> rltk::BError {
     gs.ecs.register::<Viewshed>();
     gs.ecs.register::<Monster>();
     gs.ecs.register::<Name>();
+    gs.ecs.register::<BlocksTile>();
 
 
     let map : Map = Map::new_map_rooms_and_corridors();
@@ -102,6 +107,7 @@ fn main() -> rltk::BError {
             })
             .with(Viewshed{ visible_tiles : Vec::new(), range: 8, dirty: true })
             .with(Monster{})
+            .with(BlocksTile{})
             .with(Name{ name: format!("{} #{}", &name, i) })
             .build();
     };
@@ -117,6 +123,7 @@ fn main() -> rltk::BError {
             bg: RGB::named(rltk::BLACK),
         })
         .with(Player{})
+        .with(BlocksTile{})
         .with(Viewshed{ visible_tiles : Vec::new(), range : 8, dirty: true })
         .with(Name{name: "Diamondy".to_string() })
         .build();
