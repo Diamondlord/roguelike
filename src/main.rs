@@ -29,10 +29,10 @@ impl State {
     fn run_systems(&mut self) {
         let mut vis = VisibilitySystem{};
         vis.run_now(&self.ecs);
-        let mut map_indexing = MapIndexingSystem {};
-        map_indexing.run_now(&self.ecs);
         let mut monsters_ai = MonsterAI {};
         monsters_ai.run_now(&self.ecs);
+        let mut map_indexing = MapIndexingSystem {};
+        map_indexing.run_now(&self.ecs);
         self.ecs.maintain();
     }
 }
@@ -40,27 +40,25 @@ impl State {
 impl GameState for State {
     fn tick(&mut self, ctx : &mut Rltk) {
         self.counter += 1;
+        ctx.cls();
 
         if self.runstate == RunState::Running {
             self.run_systems();
-            ctx.cls();
-            let map = self.ecs.fetch::<Map>();
-            draw_map(&self.ecs, ctx);
-
-            let positions = self.ecs.read_storage::<Position>();
-            let renderables = self.ecs.read_storage::<Renderable>();
-
-            for (pos, render) in (&positions, &renderables).join() {
-                let idx = map.xy_idx(pos.x, pos.y);
-                if map.visible_tiles[idx] { ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph) }
-            }
             self.runstate = RunState::Paused;
         } else {
             self.runstate = player_input(self, ctx);
         }
 
+        draw_map(&self.ecs, ctx);
 
+        let positions = self.ecs.read_storage::<Position>();
+        let renderables = self.ecs.read_storage::<Renderable>();
+        let map = self.ecs.fetch::<Map>();
 
+        for (pos, render) in (&positions, &renderables).join() {
+            let idx = map.xy_idx(pos.x, pos.y);
+            if map.visible_tiles[idx] { ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph) }
+        }
     }
 }
 
@@ -81,6 +79,7 @@ fn main() -> rltk::BError {
     gs.ecs.register::<Monster>();
     gs.ecs.register::<Name>();
     gs.ecs.register::<BlocksTile>();
+    gs.ecs.register::<CombatStats>();
 
 
     let map : Map = Map::new_map_rooms_and_corridors();
@@ -109,6 +108,7 @@ fn main() -> rltk::BError {
             .with(Monster{})
             .with(BlocksTile{})
             .with(Name{ name: format!("{} #{}", &name, i) })
+            .with(CombatStats{ max_hp: 16, hp: 16, defense: 1, power: 4 })
             .build();
     };
 
@@ -126,6 +126,7 @@ fn main() -> rltk::BError {
         .with(BlocksTile{})
         .with(Viewshed{ visible_tiles : Vec::new(), range : 8, dirty: true })
         .with(Name{name: "Diamondy".to_string() })
+        .with(CombatStats{ max_hp: 30, hp: 30, defense: 2, power: 5 })
         .build();
 
     rltk::main_loop(context, gs)

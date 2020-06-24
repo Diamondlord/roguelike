@@ -45,6 +45,7 @@ pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
             VirtualKeyCode::J => try_move_player(0, 1, &mut gs.ecs),
 
             // Diagonals
+            // todo numpad is not working on Mac
             VirtualKeyCode::Numpad9 |
             VirtualKeyCode::Y => try_move_player(1, -1, &mut gs.ecs),
 
