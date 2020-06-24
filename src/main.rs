@@ -15,6 +15,10 @@ mod monster_ai_system;
 use monster_ai_system::*;
 mod map_indexing_system;
 use map_indexing_system::*;
+mod melee_combat_system;
+use melee_combat_system::*;
+mod damage_system;
+use damage_system::*;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState { Paused, Running }
@@ -31,6 +35,10 @@ impl State {
         vis.run_now(&self.ecs);
         let mut monsters_ai = MonsterAI {};
         monsters_ai.run_now(&self.ecs);
+        let mut melee_combat = MeleeCombatSystem {};
+        melee_combat.run_now(&self.ecs);
+        let mut damage = DamageSystem {};
+        damage.run_now(&self.ecs);
         let mut map_indexing = MapIndexingSystem {};
         map_indexing.run_now(&self.ecs);
         self.ecs.maintain();
@@ -48,7 +56,7 @@ impl GameState for State {
         } else {
             self.runstate = player_input(self, ctx);
         }
-
+        damage_system::delete_the_dead(&mut self.ecs);
         draw_map(&self.ecs, ctx);
 
         let positions = self.ecs.read_storage::<Position>();
@@ -80,11 +88,14 @@ fn main() -> rltk::BError {
     gs.ecs.register::<Name>();
     gs.ecs.register::<BlocksTile>();
     gs.ecs.register::<CombatStats>();
+    gs.ecs.register::<WantsToMelee>();
+    gs.ecs.register::<SufferDamage>();
 
 
     let map : Map = Map::new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
     gs.ecs.insert(Point::new(player_x, player_y));
+    gs.ecs.insert(gs.runstate);
     let mut rng = rltk::RandomNumberGenerator::new();
     for (i, room) in map.rooms.iter().enumerate().skip(1) {
         let (x,y) = room.center();
@@ -114,7 +125,7 @@ fn main() -> rltk::BError {
 
     gs.ecs.insert(map);
 
-    gs.ecs
+    let player_entity = gs.ecs
         .create_entity()
         .with(Position { x: player_x, y: player_y })
         .with(Renderable {
@@ -123,11 +134,12 @@ fn main() -> rltk::BError {
             bg: RGB::named(rltk::BLACK),
         })
         .with(Player{})
-        .with(BlocksTile{})
-        .with(Viewshed{ visible_tiles : Vec::new(), range : 8, dirty: true })
-        .with(Name{name: "Diamondy".to_string() })
+        .with(Viewshed{ visible_tiles : Vec::new(), range: 8, dirty: true })
+        .with(Name{name: "Player".to_string() })
         .with(CombatStats{ max_hp: 30, hp: 30, defense: 2, power: 5 })
         .build();
+
+    gs.ecs.insert(player_entity);
 
     rltk::main_loop(context, gs)
 }
