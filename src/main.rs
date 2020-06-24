@@ -21,6 +21,8 @@ mod damage_system;
 use damage_system::*;
 mod gui;
 use gui::*;
+mod gamelog;
+use gamelog::*;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState { AwaitingInput, PreRun, PlayerTurn, MonsterTurn }
@@ -94,9 +96,11 @@ impl GameState for State {
 
 fn main() -> rltk::BError {
     use rltk::RltkBuilder;
-    let context = RltkBuilder::simple80x50()
+    let mut context = RltkBuilder::simple80x50()
         .with_title("Roguelike")
         .build()?;
+    // add burn effect
+    context.with_post_scanlines(true);
     let mut gs = State {
         ecs: World::new(),
     };
@@ -116,6 +120,7 @@ fn main() -> rltk::BError {
     let (player_x, player_y) = map.rooms[0].center();
     gs.ecs.insert(Point::new(player_x, player_y));
     gs.ecs.insert(RunState::PreRun);
+    gs.ecs.insert(GameLog { entries : vec!["Welcome to Rusty Roguelike".to_string()] });
     let mut rng = rltk::RandomNumberGenerator::new();
     for (i, room) in map.rooms.iter().enumerate().skip(1) {
         let (x,y) = room.center();
