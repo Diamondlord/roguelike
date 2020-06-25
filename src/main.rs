@@ -25,9 +25,11 @@ mod gamelog;
 use gamelog::*;
 mod spawner;
 use spawner::*;
+mod inventory_system;
+use inventory_system::*;
 
 #[derive(PartialEq, Copy, Clone)]
-pub enum RunState { AwaitingInput, PreRun, PlayerTurn, MonsterTurn }
+pub enum RunState { AwaitingInput, PreRun, PlayerTurn, MonsterTurn, ShowInventory }
 
 pub struct State {
     pub ecs: World,
@@ -45,6 +47,8 @@ impl State {
         melee_combat.run_now(&self.ecs);
         let mut damage = DamageSystem {};
         damage.run_now(&self.ecs);
+        let mut pickup = ItemCollectionSystem{};
+        pickup.run_now(&self.ecs);
         self.ecs.maintain();
     }
 }
@@ -62,18 +66,32 @@ impl GameState for State {
             RunState::PreRun => {
                 self.run_systems();
                 newrunstate = RunState::AwaitingInput;
-            }
+            },
             RunState::AwaitingInput => {
                 newrunstate = player_input(self, ctx);
-            }
+            },
             RunState::PlayerTurn => {
                 self.run_systems();
                 newrunstate = RunState::MonsterTurn;
-            }
+            },
             RunState::MonsterTurn => {
                 self.run_systems();
                 newrunstate = RunState::AwaitingInput;
-            }
+            },
+            RunState::ShowInventory => {
+                let result = gui::show_inventory(self, ctx);
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => newrunstate = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let item_entity = result.1.unwrap();
+                        let names = self.ecs.read_storage::<Name>();
+                        let mut gamelog = self.ecs.fetch_mut::<gamelog::GameLog>();
+                        gamelog.entries.push(format!("You try to use {}, but it isn't written yet", names.get(item_entity).unwrap().name));
+                        newrunstate = RunState::AwaitingInput;
+                    }
+                }
+            },
         }
 
         {
@@ -116,6 +134,10 @@ fn main() -> rltk::BError {
     gs.ecs.register::<CombatStats>();
     gs.ecs.register::<WantsToMelee>();
     gs.ecs.register::<SufferDamage>();
+    gs.ecs.register::<Item>();
+    gs.ecs.register::<Potion>();
+    gs.ecs.register::<InBackpack>();
+    gs.ecs.register::<WantsToPickupItem>();
 
     let map : Map = Map::new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
