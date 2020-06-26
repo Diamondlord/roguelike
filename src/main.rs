@@ -29,8 +29,7 @@ mod spawner;
 use spawner::*;
 mod inventory_system;
 use inventory_system::*;
-mod menu;
-use menu::*;
+mod saveload_system;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState {
@@ -197,22 +196,24 @@ impl GameState for State {
                 }
             },
             RunState::MainMenu{ .. } => {
-                let result = menu::main_menu(self, ctx);
+                let result = gui::main_menu(self, ctx);
                 match result {
                     gui::MainMenuResult::NoSelection{ selected } => newrunstate = RunState::MainMenu{ menu_selection: selected },
                     gui::MainMenuResult::Selected{ selected } => {
                         match selected {
-                            gui::MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
-                            gui::MainMenuSelection::LoadGame => newrunstate = RunState::PreRun,
+                            gui::MainMenuSelection::NewGame => newrunstate = RunState::PreRun, // todo reset game
+                            gui::MainMenuSelection::LoadGame => {
+                                saveload_system::load_game(&mut self.ecs);
+                                newrunstate = RunState::AwaitingInput;
+                                saveload_system::delete_save(); // we have permadeath
+                            }
                             gui::MainMenuSelection::Quit => { ::std::process::exit(0); }
                         }
                     }
                 }
             },
             RunState::SaveGame => {
-                let data = serde_json::to_string(&*self.ecs.fetch::<Map>()).unwrap();
-                println!("{}", data);
-
+                saveload_system::save_game(&mut self.ecs);
                 newrunstate = RunState::MainMenu{ menu_selection : gui::MainMenuSelection::LoadGame };
             },
         };
@@ -253,6 +254,10 @@ fn main() -> rltk::BError {
     gs.ecs.register::<InflictsDamage>();
     gs.ecs.register::<AreaOfEffect>();
     gs.ecs.register::<Confusion>();
+    gs.ecs.register::<SerializationHelper>();
+    gs.ecs.register::<SimpleMarker<SerializeMe>>();
+
+    gs.ecs.insert(SimpleMarkerAllocator::<SerializeMe>::new());
 
     let map: Map = Map::new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
@@ -266,7 +271,7 @@ fn main() -> rltk::BError {
 
     gs.ecs.insert(map);
     gs.ecs.insert(Point::new(player_x, player_y));
-    gs.ecs.insert(RunState::PreRun);
+    gs.ecs.insert(RunState::MainMenu{ menu_selection: gui::MainMenuSelection::NewGame });
     gs.ecs.insert(GameLog {
         entries: vec!["Welcome to Rusty Roguelike".to_string()],
     });

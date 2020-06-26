@@ -1,10 +1,8 @@
-use super::{
-    CombatStats, GameLog, Item, Map, Player, Position, RunState, State, TileType, Viewshed,
-    WantsToMelee, WantsToPickupItem,
-};
-use rltk::{console, Point, Rltk, VirtualKeyCode};
+use rltk::{VirtualKeyCode, Rltk, Point};
 use specs::prelude::*;
 use std::cmp::{max, min};
+use super::{Position, Player, Viewshed, State, Map, RunState, CombatStats, WantsToMelee, Item,
+            gamelog::GameLog, WantsToPickupItem};
 
 pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
