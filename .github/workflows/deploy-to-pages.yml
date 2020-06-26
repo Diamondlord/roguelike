@@ -17,7 +17,7 @@ jobs:
           toolchain: nightly
           override: true
 
-      - name: Add Target
+      - name: add target
         run: |
           rustup target add wasm32-unknown-unknown
           cargo install wasm-bindgen-cli
@@ -28,7 +28,7 @@ jobs:
       - name: wasm bindgen 🔧
         run: wasm-bindgen target/wasm32-unknown-unknown/release/roguelike.wasm --out-dir wasm --no-modules --no-typescript
 
-      - name: Deploy 🚀
+      - name: deploy 🚀
         uses: JamesIves/github-pages-deploy-action@3.4.9
         with:
           ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}

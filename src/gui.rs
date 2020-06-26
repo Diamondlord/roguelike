@@ -23,8 +23,9 @@ pub fn draw_ui(ecs: &World, ctx : &mut Rltk) {
     }
 
     // Draw mouse cursor
-    let mouse_pos = ctx.mouse_pos();
-    ctx.set_bg(mouse_pos.0, mouse_pos.1, RGB::named(rltk::MAGENTA));
+    let (mouse_pos_x, mouse_pos_y) = ctx.mouse_pos();
+    ctx.set_bg(mouse_pos_x, mouse_pos_y, RGB::named(rltk::MAGENTA));
+
     draw_tooltips(ecs, ctx);
 }
 
