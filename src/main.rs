@@ -1,5 +1,7 @@
 use rltk::{GameState, Point, Rltk, RGB};
 use specs::prelude::*;
+use specs::saveload::{SimpleMarker, SimpleMarkerAllocator};
+use serde;
 
 mod components;
 use components::*;
@@ -27,6 +29,8 @@ mod spawner;
 use spawner::*;
 mod inventory_system;
 use inventory_system::*;
+mod menu;
+use menu::*;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState {
@@ -43,6 +47,7 @@ pub enum RunState {
     MainMenu {
         menu_selection: gui::MainMenuSelection,
     },
+    SaveGame,
 }
 
 pub struct State {
@@ -73,52 +78,56 @@ impl State {
 
 impl GameState for State {
     fn tick(&mut self, ctx: &mut Rltk) {
-        ctx.cls();
-
-        draw_map(&self.ecs, ctx);
-
-        {
-            let positions = self.ecs.read_storage::<Position>();
-            let renderables = self.ecs.read_storage::<Renderable>();
-            let map = self.ecs.fetch::<Map>();
-
-            let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
-            data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
-            for (pos, render) in data.iter() {
-                let idx = map.xy_idx(pos.x, pos.y);
-                if map.visible_tiles[idx] {
-                    ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph)
-                }
-            }
-
-            gui::draw_ui(&self.ecs, ctx);
-        }
-
         let mut newrunstate;
         {
             let runstate = self.ecs.fetch::<RunState>();
             newrunstate = *runstate;
         }
 
+        ctx.cls();
+
+        match newrunstate {
+            RunState::MainMenu{..} => {},
+            _ => {
+                draw_map(&self.ecs, ctx);
+                {
+                    let positions = self.ecs.read_storage::<Position>();
+                    let renderables = self.ecs.read_storage::<Renderable>();
+                    let map = self.ecs.fetch::<Map>();
+
+                    let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
+                    data.sort_by(|&a, &b| b.1.render_order.cmp(&a.1.render_order));
+                    for (pos, render) in data.iter() {
+                        let idx = map.xy_idx(pos.x, pos.y);
+                        if map.visible_tiles[idx] {
+                            ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph)
+                        }
+                    }
+
+                    gui::draw_ui(&self.ecs, ctx);
+                }
+            },
+        };
+
         match newrunstate {
             RunState::PreRun => {
                 self.run_systems();
                 self.ecs.maintain();
                 newrunstate = RunState::AwaitingInput;
-            }
+            },
             RunState::AwaitingInput => {
                 newrunstate = player_input(self, ctx);
-            }
+            },
             RunState::PlayerTurn => {
                 self.run_systems();
                 self.ecs.maintain();
                 newrunstate = RunState::MonsterTurn;
-            }
+            },
             RunState::MonsterTurn => {
                 self.run_systems();
                 self.ecs.maintain();
                 newrunstate = RunState::AwaitingInput;
-            }
+            },
             RunState::ShowInventory => {
                 let result = gui::show_inventory(self, ctx);
                 match result.0 {
@@ -148,7 +157,7 @@ impl GameState for State {
                         }
                     }
                 }
-            }
+            },
             RunState::ShowDropItem => {
                 let result = gui::drop_item_menu(self, ctx);
                 match result.0 {
@@ -166,7 +175,7 @@ impl GameState for State {
                         newrunstate = RunState::PlayerTurn;
                     }
                 }
-            }
+            },
             RunState::ShowTargeting { range, item } => {
                 let result = gui::ranged_target(self, ctx, range);
                 match result.0 {
@@ -186,13 +195,33 @@ impl GameState for State {
                         newrunstate = RunState::PlayerTurn;
                     }
                 }
-            }
-        }
+            },
+            RunState::MainMenu{ .. } => {
+                let result = menu::main_menu(self, ctx);
+                match result {
+                    gui::MainMenuResult::NoSelection{ selected } => newrunstate = RunState::MainMenu{ menu_selection: selected },
+                    gui::MainMenuResult::Selected{ selected } => {
+                        match selected {
+                            gui::MainMenuSelection::NewGame => newrunstate = RunState::PreRun,
+                            gui::MainMenuSelection::LoadGame => newrunstate = RunState::PreRun,
+                            gui::MainMenuSelection::Quit => { ::std::process::exit(0); }
+                        }
+                    }
+                }
+            },
+            RunState::SaveGame => {
+                let data = serde_json::to_string(&*self.ecs.fetch::<Map>()).unwrap();
+                println!("{}", data);
+
+                newrunstate = RunState::MainMenu{ menu_selection : gui::MainMenuSelection::LoadGame };
+            },
+        };
 
         {
             let mut runwriter = self.ecs.write_resource::<RunState>();
             *runwriter = newrunstate;
         }
+
         damage_system::delete_the_dead(&mut self.ecs);
     }
 }
