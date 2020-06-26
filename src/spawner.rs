@@ -3,7 +3,7 @@ use specs::prelude::*;
 use super::{CombatStats, Player, Renderable, Name, Position, Viewshed, Monster, BlocksTile, Rect, MAPWIDTH, Item, Potion};
 
 const MAX_MONSTERS : i32 = 4;
-const MAX_ITEMS : i32 = 2;
+const MAX_ITEMS : i32 = 10;
 
 /// Spawns the player and returns his/her entity object.
 pub fn player(ecs : &mut World, player_x : i32, player_y : i32) -> Entity {
