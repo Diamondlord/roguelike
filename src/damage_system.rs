@@ -1,15 +1,17 @@
-use specs::prelude::*;
-use super::{CombatStats, SufferDamage, Player, RunState, Name};
-use rltk::{console};
+use super::{CombatStats, Name, Player, RunState, SufferDamage};
 use crate::gamelog::GameLog;
+use rltk::console;
+use specs::prelude::*;
 
 pub struct DamageSystem {}
 
 impl<'a> System<'a> for DamageSystem {
-    type SystemData = ( WriteStorage<'a, CombatStats>,
-                        WriteStorage<'a, SufferDamage> );
+    type SystemData = (
+        WriteStorage<'a, CombatStats>,
+        WriteStorage<'a, SufferDamage>,
+    );
 
-    fn run(&mut self, data : Self::SystemData) {
+    fn run(&mut self, data: Self::SystemData) {
         let (mut stats, mut damage) = data;
 
         for (mut stats, damage) in (&mut stats, &damage).join() {
@@ -20,8 +22,8 @@ impl<'a> System<'a> for DamageSystem {
     }
 }
 
-pub fn delete_the_dead(ecs : &mut World) {
-    let mut dead : Vec<Entity> = Vec::new();
+pub fn delete_the_dead(ecs: &mut World) {
+    let mut dead: Vec<Entity> = Vec::new();
     // Using a scope to make the borrow checker happy
     {
         let combat_stats = ecs.read_storage::<CombatStats>();
@@ -36,10 +38,12 @@ pub fn delete_the_dead(ecs : &mut World) {
                     None => {
                         let victim_name = names.get(entity);
                         if let Some(victim_name) = victim_name {
-                            gamelog.entries.push(format!("{} is dead", &victim_name.name));
+                            gamelog
+                                .entries
+                                .push(format!("{} is dead", &victim_name.name));
                         }
                         dead.push(entity);
-                    },
+                    }
                     Some(_) => {
                         gamelog.entries.push("You are dead".to_string());
                     }
