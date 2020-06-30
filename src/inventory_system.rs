@@ -174,6 +174,7 @@ impl<'a> System<'a> for ItemUseSystem {
                             if entity == *player_entity {
                                 let mob_name = names.get(*mob).unwrap();
                                 let item_name = names.get(useitem.item).unwrap();
+                                used_item = true;
                                 gamelog.entries.push(format!(
                                     "You use {} on {}, confusing them.",
                                     item_name.name, mob_name.name

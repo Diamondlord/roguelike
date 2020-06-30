@@ -29,14 +29,14 @@ const MAX_SPAWNS: i32 = 4;
 
 /// Fills a room with stuff!
 pub fn spawn_room(ecs: &mut World, room : &Rect, map_depth: i32) {
-    let spawn_table = room_table();
+    let spawn_table = room_table(map_depth);
     let mut spawn_points : HashMap<usize, String> = HashMap::new();
 
     // Scope to keep the borrow checker happy
     {
         let mut rng = ecs.write_resource::<RandomNumberGenerator>();
 
-        let num_spawns = rng.roll_dice(1, MAX_SPAWNS + 3) + (map_depth) - 3
+        let num_spawns = rng.roll_dice(1, MAX_SPAWNS + 3) + (map_depth) - 3;
 
         for _i in 0 .. num_spawns {
             let mut added = false;
