@@ -1,7 +1,7 @@
 use super::{CombatStats, GameLog, Name, SufferDamage, WantsToMelee};
 use rltk::console;
 use specs::prelude::*;
-use crate::components::{DefenseBonus, MeleePowerBonus};
+use crate::components::{DefenseBonus, MeleePowerBonus, Equipped};
 
 pub struct MeleeCombatSystem {}
 
@@ -13,15 +13,16 @@ impl<'a> System<'a> for MeleeCombatSystem {
         ReadStorage<'a, CombatStats>,
         WriteStorage<'a, SufferDamage>,
         WriteExpect<'a, GameLog>,
+        ReadStorage<'a, Equipped>,
         ReadStorage<'a, DefenseBonus>,
         ReadStorage<'a, MeleePowerBonus>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
         let (entities, mut wants_melee, names, combat_stats,
-            mut inflict_damage, mut gamelog, defence_bonuses, melee_power_bonuses) =
+            mut inflict_damage, mut gamelog, equipped, defense_bonuses, melee_power_bonuses) =
             data;
-        for (_entity, wants_melee, name, stats) in
+        for (entity, wants_melee, name, stats) in
             (&entities, &wants_melee, &names, &combat_stats).join()
         {
             if stats.hp > 0 {
