@@ -2,7 +2,7 @@ use rltk::{ RGB, RandomNumberGenerator };
 use specs::prelude::*;
 use super::{ CombatStats, Player, Renderable, Name, Position, Viewshed, Monster, BlocksTile, Rect, Item,
             Consumable, Ranged, ProvidesHealing, map::MAPWIDTH, InflictsDamage, AreaOfEffect, Confusion,
-            SerializeMe, RandomTable, Equippable, EquipmentSlot };
+            SerializeMe, RandomTable, Equippable, EquipmentSlot, MeleePowerBonus, DefenseBonus };
 use specs::saveload::{MarkedBuilder, SimpleMarker};
 use std::collections::HashMap;
 
@@ -179,6 +179,7 @@ fn dagger(ecs: &mut World, x: i32, y: i32) {
         .with(Name{ name : "Dagger".to_string() })
         .with(Item{})
         .with(Equippable{ slot: EquipmentSlot::Melee })
+        .with(MeleePowerBonus{ power: 2 })
         .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
@@ -195,6 +196,7 @@ fn shield(ecs: &mut World, x: i32, y: i32) {
         .with(Name{ name : "Shield".to_string() })
         .with(Item{})
         .with(Equippable{ slot: EquipmentSlot::Melee })
+        .with(DefenseBonus{ defense: 1 })
         .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
